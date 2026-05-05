@@ -283,8 +283,14 @@ components:
           type: string
         transcript:
           type: string
+        translation:
+          type: string
+          description: English translation of transcript if not in English
         language:
           type: string
+        dialect:
+          type: string
+          description: Detected regional dialect (e.g. Dharwad Kannada, Mysuru Kannada)
         emotion:
           type: string
         urgency:
@@ -301,10 +307,23 @@ components:
           type: integer
         level:
           type: integer
+        mode:
+          type: integer
+          description: 1=AI Full Auto, 2=AI+Agent, 3=Full Human Takeover
+        suggested_responses:
+          type: array
+          items:
+            type: string
+          description: 3 suggested responses for Mode 2 agent assist
+        agent_briefing:
+          type: string
+          description: Brief for agent during Mode 3 handover
       required:
         - response
         - transcript
+        - translation
         - language
+        - dialect
         - emotion
         - urgency
         - emergency_keywords
@@ -312,6 +331,9 @@ components:
         - intent
         - confidence
         - level
+        - mode
+        - suggested_responses
+        - agent_briefing
     FeedbackBody:
       type: object
       properties:

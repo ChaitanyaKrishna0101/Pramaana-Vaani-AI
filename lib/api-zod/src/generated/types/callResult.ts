@@ -9,7 +9,11 @@
 export interface CallResult {
   response: string;
   transcript: string;
+  /** English translation of transcript if not in English */
+  translation: string;
   language: string;
+  /** Detected regional dialect (e.g. Dharwad Kannada, Mysuru Kannada) */
+  dialect: string;
   emotion: string;
   urgency: string;
   emergency_keywords: string[];
@@ -17,4 +21,10 @@ export interface CallResult {
   intent: string;
   confidence: number;
   level: number;
+  /** 1=AI Full Auto, 2=AI+Agent, 3=Full Human Takeover */
+  mode: number;
+  /** 3 suggested responses for Mode 2 agent assist */
+  suggested_responses: string[];
+  /** Brief for agent during Mode 3 handover */
+  agent_briefing: string;
 }

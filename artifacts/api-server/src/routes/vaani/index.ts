@@ -32,18 +32,21 @@ router.post("/vaani/process", async (req, res): Promise<void> => {
   const session = sessions.get(sessionId)!;
 
   try {
-    const sttPrompt = `You are a professional emergency audio analyzer for VAANI — an AI voice assistant for Indian languages.
-Analyze this audio for content, tone, pace, and keywords. Return results as JSON with ONLY these fields:
+    const sttPrompt = `You are an expert multilingual speech analyst for Indian emergency helpline 1092.
+Analyze this audio clip carefully. Detect regional dialects, code-switching, and emotional cues.
+Return ONLY valid JSON with exactly these fields:
 {
-  "transcript": "Full accurate text of the audio in its original language",
-  "language": "Detect which: English, Hindi, Kannada, Telugu",
-  "emotion": "DISTRESSED or CALM",
-  "urgency_level": "Scale of 1-10 as string",
-  "emergency_keywords": ["list", "of", "detected", "critical", "words"],
-  "issue": "Brief summary of the emergency or problem",
+  "transcript": "Exact text in the speaker's language",
+  "language": "English | Hindi | Kannada | Telugu",
+  "dialect": "Specific regional variant e.g. Dharwad Kannada, Mysuru Kannada, Coastal Kannada, North Karnataka Kannada, Hyderabadi Hindi, Standard Telugu, Chennai Tamil-Telugu, Standard English",
+  "translation": "English translation of transcript (same as transcript if already English)",
+  "emotion": "DISTRESSED | ANGRY | FEARFUL | URGENT | CALM",
+  "urgency_level": "1-10 as string",
+  "emergency_keywords": ["list", "of", "critical", "terms"],
+  "issue": "One-line summary of the problem in English",
   "confidence": 85
 }
-confidence is 0-100 integer.`;
+Be precise about dialects. confidence is 0-100 integer.`;
 
     const sttResult = await ai.models.generateContent({
       model: "gemini-2.5-flash",
@@ -63,6 +66,8 @@ confidence is 0-100 integer.`;
     let sttData: {
       transcript?: string;
       language?: string;
+      dialect?: string;
+      translation?: string;
       emotion?: string;
       urgency_level?: string;
       emergency_keywords?: string[];
@@ -79,9 +84,12 @@ confidence is 0-100 integer.`;
 
     if (!sttData.transcript || sttData.transcript.trim().length < 2) {
       res.json({
-        response: "I'm sorry, I couldn't hear you clearly. Could you please repeat that?",
+        response:
+          "I'm sorry, I couldn't hear you clearly. Could you please repeat that?",
         transcript: "[No clear audio detected]",
+        translation: "[No clear audio detected]",
         language: "English",
+        dialect: "Standard English",
         emotion: "CALM",
         urgency: "1",
         emergency_keywords: [],
@@ -89,53 +97,67 @@ confidence is 0-100 integer.`;
         intent: "UNDETERMINED",
         confidence: 0,
         level: 1,
+        mode: 1,
+        suggested_responses: [],
+        agent_briefing: "",
       });
       return;
     }
 
     const confidence = sttData.confidence ?? 75;
     const urgencyNum = parseInt(sttData.urgency_level ?? "5", 10);
-    const isDistressed = sttData.emotion === "DISTRESSED";
+    const isDistressed =
+      sttData.emotion === "DISTRESSED" ||
+      sttData.emotion === "FEARFUL" ||
+      sttData.emotion === "ANGRY";
 
     let level = 1;
+    let mode = 1;
+
     if (confidence < 60 || isDistressed || urgencyNum >= 8) {
       level = 3;
+      mode = 3;
     } else if (confidence < 85 || urgencyNum >= 6) {
       level = 2;
+      mode = 2;
     }
 
-    const systemPrompt = `You are VAANI, an experienced technical support specialist and AI emergency dispatcher for Indian citizens (helpline 1092).
+    const modeDesc =
+      mode === 3
+        ? "MODE 3 — FULL HUMAN TAKEOVER: AI briefs agent immediately and stays silent but transcribes."
+        : mode === 2
+        ? "MODE 2 — AI + AGENT TOGETHER: Provide 3 suggested responses for the agent to click."
+        : "MODE 1 — AI FULL AUTO: Handle end-to-end, agent not disturbed.";
 
-Your role is to troubleshoot voice-controlled device and application issues as well as handle emergency calls. You systematically diagnose and resolve issues to restore full functionality.
+    const systemPrompt = `You are VAANI, an experienced multilingual AI emergency dispatcher for India's 1092 helpline.
 
-Core behaviors:
-- Respond IMMEDIATELY when the user stops speaking — never delay your reply.
-- If the user interrupts you mid-response, stop immediately and switch to active listening mode.
-- Do not respond to unintended background sounds or interruptions; wait for clear voice input.
-- Respond appropriately based on the caller's detected language setting.
-- Be calm, professional, and empathetic. Avoid speculation or unsupported claims.
+${modeDesc}
 
 Current call context:
 - Issue: ${sttData.issue}
-- Language: ${sttData.language}
+- Language: ${sttData.language} (${sttData.dialect ?? "standard"})
 - Emotion: ${sttData.emotion}
 - Urgency: ${sttData.urgency_level}/10
 - Keywords: ${(sttData.emergency_keywords ?? []).join(", ")}
 - Step: ${step ?? "INITIAL"}
-- Confidence Level: ${confidence}%
-- Escalation Level: ${level}
+- Confidence: ${confidence}%
+- Level: ${level} | Mode: ${mode}
 
-When diagnosing issues, provide numbered troubleshooting steps, keep responses concise (under 100 words spoken), and recommend specific corrective actions. If Level 3 escalation, indicate transferring to a human agent immediately.
+Core behaviors:
+- Respond IMMEDIATELY when user stops speaking.
+- If user interrupts mid-response, stop and listen.
+- Respond in ${sttData.language ?? "English"} matching the caller's dialect.
+- Be calm, professional, empathetic. Provide numbered steps for technical issues.
+- If Level 3: tell citizen you are connecting them to a human agent right now.
+- At VERIFICATION step: restate understanding verbally and ask if correct.
 
-CRITICAL OUTPUT RULES:
-1. Respond ONLY in ${sttData.language ?? "English"}.
-2. Return ONLY valid JSON with this exact schema:
+Return ONLY valid JSON:
 {
-  "response": "What you say to the citizen — concise, professional, actionable",
-  "intent": "YES or NO or UNDETERMINED"
-}
-3. If VERIFICATION step, confirm understanding of the issue and ask if your summary is correct.
-4. Use conversation history for context. Do NOT repeat questions already asked.`;
+  "response": "What VAANI says to citizen in ${sttData.language ?? "English"} — concise, under 60 words",
+  "intent": "YES | NO | UNDETERMINED",
+  "suggested_responses": ["Suggested reply 1 in English", "Suggested reply 2 in English", "Suggested reply 3 in English"],
+  "agent_briefing": "LIVE CALL: Issue — [X]. Emotion — [Y]. Dialect — [Z]. Confidence — [N]%. Suggested action: [brief]."
+}`;
 
     const historyMessages = session.history.slice(-10);
 
@@ -156,7 +178,12 @@ CRITICAL OUTPUT RULES:
     });
 
     const chatText = chatResult.text ?? "{}";
-    let chatData: { response?: string; intent?: string } = {};
+    let chatData: {
+      response?: string;
+      intent?: string;
+      suggested_responses?: string[];
+      agent_briefing?: string;
+    } = {};
     try {
       const match = chatText.match(/\{[\s\S]*\}/);
       chatData = match ? JSON.parse(match[0]) : {};
@@ -176,7 +203,9 @@ CRITICAL OUTPUT RULES:
     res.json({
       response: chatData.response ?? "Please repeat your concern.",
       transcript: sttData.transcript ?? "",
+      translation: sttData.translation ?? sttData.transcript ?? "",
       language: sttData.language ?? "English",
+      dialect: sttData.dialect ?? "Standard",
       emotion: sttData.emotion ?? "CALM",
       urgency: sttData.urgency_level ?? "5",
       emergency_keywords: sttData.emergency_keywords ?? [],
@@ -184,10 +213,15 @@ CRITICAL OUTPUT RULES:
       intent: chatData.intent ?? "UNDETERMINED",
       confidence,
       level,
+      mode,
+      suggested_responses: chatData.suggested_responses ?? [],
+      agent_briefing: chatData.agent_briefing ?? "",
     });
   } catch (error) {
     req.log.error({ error }, "Vaani process error");
-    res.status(500).json({ error: error instanceof Error ? error.message : "Processing failed" });
+    res
+      .status(500)
+      .json({ error: error instanceof Error ? error.message : "Processing failed" });
   }
 });
 
@@ -198,7 +232,16 @@ router.post("/vaani/feedback", async (req, res): Promise<void> => {
     return;
   }
 
-  const { transcript, issue, emotion, language, urgency, confidence, level, feedback } = parsed.data;
+  const {
+    transcript,
+    issue,
+    emotion,
+    language,
+    urgency,
+    confidence,
+    level,
+    feedback,
+  } = parsed.data;
 
   try {
     await db.insert(callsTable).values({
@@ -239,8 +282,11 @@ router.get("/vaani/analytics", async (_req, res): Promise<void> => {
     const totalCalls = rows.length;
     const correctCount = rows.filter((r) => r.feedback === "Correct").length;
     const wrongCount = rows.filter((r) => r.feedback === "Wrong").length;
-    const accuracyPercent = totalCalls > 0 ? Math.round((correctCount / totalCalls) * 100) : 0;
-    const distressedCount = rows.filter((r) => r.emotion === "DISTRESSED").length;
+    const accuracyPercent =
+      totalCalls > 0 ? Math.round((correctCount / totalCalls) * 100) : 0;
+    const distressedCount = rows.filter(
+      (r) => r.emotion === "DISTRESSED" || r.emotion === "FEARFUL" || r.emotion === "ANGRY"
+    ).length;
     const calmCount = rows.filter((r) => r.emotion === "CALM").length;
     const level1Count = rows.filter((r) => r.level === 1).length;
     const level2Count = rows.filter((r) => r.level === 2).length;
@@ -248,7 +294,8 @@ router.get("/vaani/analytics", async (_req, res): Promise<void> => {
 
     const languageBreakdown: Record<string, number> = {};
     for (const row of rows) {
-      languageBreakdown[row.language] = (languageBreakdown[row.language] ?? 0) + 1;
+      languageBreakdown[row.language] =
+        (languageBreakdown[row.language] ?? 0) + 1;
     }
 
     const issueMap: Record<string, number> = {};

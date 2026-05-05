@@ -28,7 +28,15 @@ export const ProcessVaaniCallBody = zod.object({
 export const ProcessVaaniCallResponse = zod.object({
   response: zod.string(),
   transcript: zod.string(),
+  translation: zod
+    .string()
+    .describe("English translation of transcript if not in English"),
   language: zod.string(),
+  dialect: zod
+    .string()
+    .describe(
+      "Detected regional dialect (e.g. Dharwad Kannada, Mysuru Kannada)",
+    ),
   emotion: zod.string(),
   urgency: zod.string(),
   emergency_keywords: zod.array(zod.string()),
@@ -36,6 +44,15 @@ export const ProcessVaaniCallResponse = zod.object({
   intent: zod.string(),
   confidence: zod.number(),
   level: zod.number(),
+  mode: zod
+    .number()
+    .describe("1=AI Full Auto, 2=AI+Agent, 3=Full Human Takeover"),
+  suggested_responses: zod
+    .array(zod.string())
+    .describe("3 suggested responses for Mode 2 agent assist"),
+  agent_briefing: zod
+    .string()
+    .describe("Brief for agent during Mode 3 handover"),
 });
 
 /**
