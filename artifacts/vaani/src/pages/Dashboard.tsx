@@ -36,6 +36,27 @@ const LANG_VOICES: Record<string, string> = {
   Telugu: "te-IN",
 };
 
+function selectIndianFemaleVoice(): SpeechSynthesisVoice | null {
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices.length) return null;
+
+  const isFemale = (v: SpeechSynthesisVoice) =>
+    /female|woman|girl|zira|heera|priya|divya|raveena|aditi|veena/i.test(v.name);
+  const isIndian = (v: SpeechSynthesisVoice) =>
+    v.lang.endsWith("-IN") || /india/i.test(v.name);
+
+  return (
+    voices.find((v) => v.lang === "kn-IN" && isFemale(v)) ??
+    voices.find((v) => v.lang === "kn-IN") ??
+    voices.find((v) => v.lang === "en-IN" && isFemale(v)) ??
+    voices.find((v) => v.lang === "en-IN") ??
+    voices.find((v) => isIndian(v) && isFemale(v)) ??
+    voices.find((v) => isIndian(v)) ??
+    voices.find((v) => isFemale(v)) ??
+    null
+  );
+}
+
 const SILENCE_THRESHOLD = 12;
 const SILENCE_MS = 2000;
 const NO_RESPONSE_MS = 10000;
@@ -94,9 +115,21 @@ export default function Dashboard() {
   const noResponseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stepRef = useRef<Step>("IDLE");
   const langRef = useRef("English");
+  const indianVoiceRef = useRef<SpeechSynthesisVoice | null>(null);
 
   stepRef.current = step;
   langRef.current = detectedLang;
+
+  // Load and cache the best Indian female voice as soon as voices are available
+  useEffect(() => {
+    const load = () => {
+      const v = selectIndianFemaleVoice();
+      if (v) indianVoiceRef.current = v;
+    };
+    load();
+    window.speechSynthesis.onvoiceschanged = load;
+    return () => { window.speechSynthesis.onvoiceschanged = null; };
+  }, []);
 
   const processCall = useProcessVaaniCall();
   const submitFeedback = useSubmitVaaniFeedback();
@@ -146,11 +179,21 @@ export default function Dashboard() {
       clearNoResponseTimer();
       window.speechSynthesis.cancel();
       const utter = new SpeechSynthesisUtterance(text);
+
+      // Always speak in the correct language for pronunciation
       utter.lang = LANG_VOICES[lang] ?? "en-IN";
-      const voices = window.speechSynthesis.getVoices();
-      const match = voices.find((v) => v.lang.startsWith(utter.lang.split("-")[0]));
-      if (match) utter.voice = match;
+
+      // Use the cached Indian Kannada female voice as the voice character.
+      // Re-attempt selection in case voices loaded after mount.
+      const voice = indianVoiceRef.current ?? selectIndianFemaleVoice();
+      if (voice) {
+        utter.voice = voice;
+        // Keep the lang override — this lets Chrome use the Kannada female voice
+        // character but pronounce in the correct language
+        utter.lang = LANG_VOICES[lang] ?? "en-IN";
+      }
       utter.rate = 0.92;
+      utter.pitch = 1.05;
 
       utter.onstart = () => setIsSpeaking(true);
       utter.onend = () => { setIsSpeaking(false); stopInterruptMonitor(); onDone(); };
