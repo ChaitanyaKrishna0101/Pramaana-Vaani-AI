@@ -1,0 +1,205 @@
+Build a complete working hackathon demo application called "VAANI".
+
+GOAL:
+A real-time AI voice assistant that listens to a user via microphone,
+understands Telugu, Kannada, Hindi, or English, verifies understanding,
+and shows everything live on an agent dashboard.
+
+STRICT REQUIREMENTS:
+- 100% FREE stack (no paid APIs at all)
+- Must run on Replit or localhost
+- Microphone-based demo (NO phone integration)
+- Real-time UI updates
+- Must demonstrate:
+  1. Language detection
+  2. Verification loop
+  3. Emotion detection
+  4. Level 1 / 2 / 3 escalation
+  5. Feedback storage
+
+━━━━━━━━━━━━━━━━━━━━
+TECH STACK
+━━━━━━━━━━━━━━━━━━━━
+
+Frontend:
+- React (Vite)
+- Tailwind CSS
+- Web Speech API (SpeechRecognition + SpeechSynthesis)
+
+Backend:
+- FastAPI
+- WebSocket (real-time updates)
+- SQLite (feedback storage)
+- No external paid APIs
+
+AI LOGIC:
+- No OpenAI, no Gemini, no ElevenLabs
+- Use rule-based + lightweight NLP logic
+- Use keyword mapping + simple intent detection
+
+━━━━━━━━━━━━━━━━━━━━
+CORE FEATURES
+━━━━━━━━━━━━━━━━━━━━
+
+1. VOICE INPUT
+- Use browser SpeechRecognition
+- Detect user speech in Telugu, Kannada, Hindi, English
+- Show:
+  - Original speech (user language)
+  - Normalized English meaning
+
+2. LANGUAGE DETECTION
+- Use simple heuristic:
+  - Telugu → presence of Telugu words
+  - Kannada → presence of Kannada words
+  - Hindi → Hindi keywords
+  - Else → English
+
+3. VERIFICATION LOOP
+- Convert understanding into:
+  "Your issue is X — correct?"
+- Speak back in SAME language
+
+Examples:
+- Telugu: "Mee samasya X gurinchi kada?"
+- Kannada: "Nimma samasye X bagge ideya?"
+- Hindi: "Aapki samasya X ke baare mein hai, sahi hai?"
+- English: "Your issue is about X, correct?"
+
+4. SENTIMENT DETECTION (RULE-BASED)
+Use:
+- CAPS words → anger
+- fast speech (short intervals) → urgency
+- keywords:
+  - "help", "urgent", "please" → distress
+
+Classify:
+- calm / distress / anger / urgency
+
+5. CONFIDENCE SCORE
+- High if clear keywords match
+- Medium if partial match
+- Low if unknown
+
+6. 3 LEVEL SYSTEM
+
+LEVEL 1:
+- confidence > 85 AND calm
+- AI handles fully
+
+LEVEL 2:
+- confidence 60–85
+- Show suggestions to agent
+
+LEVEL 3:
+- confidence < 60 OR distress OR 2 failed verifications
+- Show "Escalating to human agent"
+
+7. AGENT DASHBOARD (REAL-TIME)
+
+Left:
+- Live transcript
+
+Center:
+- AI understanding
+- Language detected
+- Emotion
+- Confidence
+
+Right:
+- Suggested responses (buttons)
+
+Top:
+- Level indicator (green/yellow/red)
+- Call timer
+
+8. SPEECH OUTPUT
+- Use SpeechSynthesis
+- Respond in SAME language as user
+
+9. FEEDBACK SYSTEM
+
+Buttons:
+- ✅ Correct
+- ❌ Wrong
+
+Store in SQLite:
+- original speech
+- interpretation
+- language
+- sentiment
+- confidence
+- verdict
+- timestamp
+
+10. ANALYTICS PAGE
+
+Show:
+- total calls
+- accuracy %
+- common issues
+- recent feedback
+
+━━━━━━━━━━━━━━━━━━━━
+REAL-TIME FLOW
+━━━━━━━━━━━━━━━━━━━━
+
+User clicks "Start Call"
+↓
+Speaks
+↓
+Frontend:
+- converts speech → text
+- sends via WebSocket
+↓
+Backend:
+- detects language
+- detects intent
+- calculates sentiment + confidence
+- returns structured data
+↓
+Frontend:
+- updates dashboard instantly
+- speaks verification
+↓
+User says YES/NO
+↓
+System:
+- YES → proceed
+- NO → retry once → else Level 3
+
+━━━━━━━━━━━━━━━━━━━━
+FOLDER STRUCTURE
+━━━━━━━━━━━━━━━━━━━━
+
+backend/
+  main.py
+  logic.py
+  sentiment.py
+  database.py
+
+frontend/
+  src/
+    App.jsx
+    components/
+      Dashboard.jsx
+      Transcript.jsx
+      Controls.jsx
+      Analytics.jsx
+
+━━━━━━━━━━━━━━━━━━━━
+IMPORTANT RULES
+━━━━━━━━━━━━━━━━━━━━
+
+- DO NOT use any paid APIs
+- DO NOT use Gemini/OpenAI
+- Keep everything simple and working
+- Focus on DEMO, not perfection
+- Must run with:
+  backend: uvicorn main:app --reload
+  frontend: npm run dev
+
+OUTPUT:
+- Full working code
+- No placeholders
+- No TODOs

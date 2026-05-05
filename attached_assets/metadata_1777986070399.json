@@ -1,0 +1,13 @@
+{
+  "name": "Citizen Calls 1092",
+  "description": "An emergency dispatch system that uses AI to analyze emotions and issues in multiple Indian languages, prioritizing distressed calls for immediate response.",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "Multilingual STT",
+    "Emotion Analysis",
+    "Emergency Triage",
+    "SQLite Persistence"
+  ]
+}

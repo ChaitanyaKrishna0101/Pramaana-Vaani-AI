@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "VAANI — AI Voice Assistant"
+version = "1.0.0"
+id = "artifacts/vaani"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22484
+
+[services.development]
+run = "pnpm --filter @workspace/vaani run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/vaani", "run", "build" ]
+publicDir = "artifacts/vaani/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22484"
+BASE_PATH = "/"

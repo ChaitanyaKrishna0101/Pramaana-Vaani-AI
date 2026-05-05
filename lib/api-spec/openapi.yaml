@@ -1,15 +1,18 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: VAANI AI Voice Assistant API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: vaani
+    description: VAANI voice assistant operations
+  - name: gemini
+    description: Gemini AI chat and image operations
 paths:
   /healthz:
     get:
@@ -24,6 +27,231 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /vaani/process:
+    post:
+      operationId: processVaaniCall
+      tags: [vaani]
+      summary: Process an audio call with Gemini AI
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProcessCallBody"
+      responses:
+        "200":
+          description: AI analysis result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CallResult"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /vaani/feedback:
+    post:
+      operationId: submitVaaniFeedback
+      tags: [vaani]
+      summary: Submit feedback for a call
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FeedbackBody"
+      responses:
+        "200":
+          description: Feedback saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+  /vaani/history:
+    get:
+      operationId: getVaaniHistory
+      tags: [vaani]
+      summary: Get call history
+      responses:
+        "200":
+          description: List of past calls
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CallRecord"
+  /vaani/analytics:
+    get:
+      operationId: getVaaniAnalytics
+      tags: [vaani]
+      summary: Get analytics summary
+      responses:
+        "200":
+          description: Analytics data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyticsSummary"
+  /vaani/reset-session:
+    post:
+      operationId: resetVaaniSession
+      tags: [vaani]
+      summary: Reset a session's conversation memory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResetSessionBody"
+      responses:
+        "200":
+          description: Session reset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+  /gemini/conversations:
+    get:
+      operationId: listGeminiConversations
+      tags: [gemini]
+      summary: List all conversations
+      responses:
+        "200":
+          description: List of conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GeminiConversation"
+    post:
+      operationId: createGeminiConversation
+      tags: [gemini]
+      summary: Create a new conversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGeminiConversationBody"
+      responses:
+        "201":
+          description: Created conversation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeminiConversation"
+  /gemini/conversations/{id}:
+    get:
+      operationId: getGeminiConversation
+      tags: [gemini]
+      summary: Get conversation with messages
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Conversation with messages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeminiConversationWithMessages"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeminiError"
+    delete:
+      operationId: deleteGeminiConversation
+      tags: [gemini]
+      summary: Delete a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeminiError"
+  /gemini/conversations/{id}/messages:
+    get:
+      operationId: listGeminiMessages
+      tags: [gemini]
+      summary: List messages in a conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GeminiMessage"
+    post:
+      operationId: sendGeminiMessage
+      tags: [gemini]
+      summary: Send a message and receive an AI response (SSE stream)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendGeminiMessageBody"
+      responses:
+        "200":
+          description: SSE stream of assistant response chunks
+          content:
+            text/event-stream: {}
+  /gemini/generate-image:
+    post:
+      operationId: generateGeminiImage
+      tags: [gemini]
+      summary: Generate an image from a text prompt
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateGeminiImageBody"
+      responses:
+        "200":
+          description: Generated image data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateGeminiImageResponse"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +261,267 @@ components:
           type: string
       required:
         - status
-
+    ProcessCallBody:
+      type: object
+      properties:
+        audioBase64:
+          type: string
+        mimeType:
+          type: string
+        step:
+          type: string
+        sessionId:
+          type: string
+      required:
+        - audioBase64
+        - mimeType
+        - sessionId
+    CallResult:
+      type: object
+      properties:
+        response:
+          type: string
+        transcript:
+          type: string
+        language:
+          type: string
+        emotion:
+          type: string
+        urgency:
+          type: string
+        emergency_keywords:
+          type: array
+          items:
+            type: string
+        issue:
+          type: string
+        intent:
+          type: string
+        confidence:
+          type: integer
+        level:
+          type: integer
+      required:
+        - response
+        - transcript
+        - language
+        - emotion
+        - urgency
+        - emergency_keywords
+        - issue
+        - intent
+        - confidence
+        - level
+    FeedbackBody:
+      type: object
+      properties:
+        transcript:
+          type: string
+        issue:
+          type: string
+        emotion:
+          type: string
+        language:
+          type: string
+        urgency:
+          type: string
+        confidence:
+          type: integer
+        level:
+          type: integer
+        feedback:
+          type: string
+      required:
+        - transcript
+        - issue
+        - emotion
+        - language
+        - feedback
+    CallRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+        transcript:
+          type: string
+        issue:
+          type: string
+        emotion:
+          type: string
+        language:
+          type: string
+        urgency:
+          type: ["string", "null"]
+        confidence:
+          type: ["integer", "null"]
+        level:
+          type: ["integer", "null"]
+        feedback:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - transcript
+        - issue
+        - emotion
+        - language
+        - urgency
+        - confidence
+        - level
+        - feedback
+        - createdAt
+    AnalyticsSummary:
+      type: object
+      properties:
+        totalCalls:
+          type: integer
+        correctCount:
+          type: integer
+        wrongCount:
+          type: integer
+        accuracyPercent:
+          type: number
+        distressedCount:
+          type: integer
+        calmCount:
+          type: integer
+        languageBreakdown:
+          type: object
+          additionalProperties:
+            type: integer
+        commonIssues:
+          type: array
+          items:
+            type: string
+        level1Count:
+          type: integer
+        level2Count:
+          type: integer
+        level3Count:
+          type: integer
+      required:
+        - totalCalls
+        - correctCount
+        - wrongCount
+        - accuracyPercent
+        - distressedCount
+        - calmCount
+        - languageBreakdown
+        - commonIssues
+        - level1Count
+        - level2Count
+        - level3Count
+    ResetSessionBody:
+      type: object
+      properties:
+        sessionId:
+          type: string
+      required:
+        - sessionId
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+      required:
+        - success
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+    GeminiConversation:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - createdAt
+    GeminiMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+        conversationId:
+          type: integer
+        role:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - conversationId
+        - role
+        - content
+        - createdAt
+    CreateGeminiConversationBody:
+      type: object
+      properties:
+        title:
+          type: string
+      required:
+        - title
+    SendGeminiMessageBody:
+      type: object
+      properties:
+        content:
+          type: string
+      required:
+        - content
+    GeminiConversationWithMessages:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/GeminiMessage"
+      required:
+        - id
+        - title
+        - createdAt
+        - messages
+    GenerateGeminiImageBody:
+      type: object
+      properties:
+        prompt:
+          type: string
+      required:
+        - prompt
+    GenerateGeminiImageResponse:
+      type: object
+      properties:
+        b64_json:
+          type: string
+        mimeType:
+          type: string
+      required:
+        - b64_json
+        - mimeType
+    GeminiError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
