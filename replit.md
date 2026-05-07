@@ -1,65 +1,493 @@
-# VAANI — AI Voice Assistant for Emergency Dispatch
+# VAANI
+## AI-Powered Multilingual Emergency Dispatch Assistant for Indian Public Safety Systems
 
-## Overview
+<p align="center">
+  <img src="https://img.shields.io/badge/AI-Gemini%202.5-blue?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Frontend-React%20%2B%20TS-61DAFB?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Backend-Express.js-black?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Database-PostgreSQL-336791?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Status-Production%20Architecture-success?style=for-the-badge" />
+</p>
 
-VAANI is a real-time multilingual AI voice assistant built for Indian emergency dispatch (1092). It listens to citizens speaking in Telugu, Kannada, Hindi, or English, analyzes emotion and urgency, and routes calls to the appropriate response level.
+---
 
-## Architecture
+# Problem Statement
 
-**Monorepo (pnpm workspaces):**
-- `artifacts/vaani` — React + Vite frontend (`@workspace/vaani`)
-- `artifacts/api-server` — Express API server (`@workspace/api-server`)
-- `lib/api-spec` — OpenAPI contract (`@workspace/api-spec`)
-- `lib/api-client-react` — Generated React Query hooks (`@workspace/api-client-react`)
-- `lib/api-zod` — Generated Zod schemas (`@workspace/api-zod`)
-- `lib/db` — Drizzle ORM + PostgreSQL (`@workspace/db`)
-- `lib/integrations-gemini-ai` — Gemini AI client via Replit integration
+Emergency helplines in India face major operational challenges:
 
-## Key Features
+- Language barriers between callers and operators
+- Panic-driven communication failures
+- Delayed human response during high call volume
+- Lack of intelligent prioritization
+- Manual triaging inefficiencies
+- Limited multilingual support
+- No emotion-aware escalation systems
 
-- **Voice capture:** MediaRecorder API with silence detection via AudioContext + AnalyserNode
-- **Multilingual AI:** Gemini 2.5 Flash processes audio inline (base64), detects language, emotion, urgency, keywords
-- **3-Level Escalation:**
-  - L1: confidence ≥ 85 + calm → automated response
-  - L2: confidence < 85 OR urgency ≥ 6 → human review
-  - L3: confidence < 60 OR distressed OR urgency ≥ 8 → immediate human escalation
-- **TTS:** Web Speech API speaks responses back in caller's language (en-IN, hi-IN, kn-IN, te-IN)
-- **Session memory:** In-process Map for multi-turn conversation
-- **Feedback loop:** Correct/Wrong rating stored in PostgreSQL `calls` table
-- **Analytics dashboard:** Accuracy, language breakdown, escalation stats, common issues
-- **Call history:** Full table of past calls with transcripts
+Traditional IVR systems are rule-based and incapable of understanding:
+- emotional distress
+- urgency
+- contextual intent
+- multilingual speech patterns
 
-## Pages
+This creates dangerous delays during emergencies.
 
-- `/` — Main dispatch dashboard (command center)
-- `/analytics` — Real-time analytics overview
-- `/history` — Call history log
+---
 
-## API Endpoints
+# Solution
 
-All under `/api/vaani/`:
-- `POST /process` — Submit audio for AI analysis
-- `POST /feedback` — Submit correct/wrong feedback on a call
-- `GET /history` — Retrieve past call records
-- `GET /analytics` — Retrieve aggregated statistics
-- `POST /reset-session` — Clear in-memory session state
+VAANI is an AI-powered multilingual emergency dispatch assistant that performs:
 
-## Tech Stack
+- Real-time voice interaction
+- Language detection
+- Emotion analysis
+- Urgency scoring
+- AI-generated multilingual responses
+- Smart escalation routing
+- Human handoff prioritization
 
-- React 18 + Vite + TypeScript + Tailwind CSS + shadcn/ui
-- Express + Drizzle ORM + PostgreSQL
-- Google Gemini 2.5 Flash (via Replit AI Integrations proxy)
-- Framer Motion + Lucide React + Recharts
-- TanStack Query + Orval codegen
-- Wouter for client-side routing
+The system acts as an intelligent first-response layer before human intervention.
 
-## Environment Secrets
+---
 
-- `SESSION_SECRET` — Express session secret
-- `AI_INTEGRATIONS_GEMINI_BASE_URL` — Gemini proxy base URL (auto-set by Replit)
-- `AI_INTEGRATIONS_GEMINI_API_KEY` — Gemini API key (auto-set by Replit)
-- `DATABASE_URL` — PostgreSQL connection string (auto-set by Replit)
+# Core Idea
 
-## Database Schema
+Instead of forcing distressed callers through static IVR menus:
 
-`calls` table: `id`, `sessionId`, `transcript`, `issue`, `emotion`, `language`, `urgency`, `confidence`, `level`, `keywords[]`, `response`, `feedback`, `createdAt`
+VAANI behaves like an AI emergency operator.
+
+It:
+1. Listens to the caller
+2. Understands their language
+3. Detects emotional distress
+4. Determines urgency level
+5. Responds naturally
+6. Escalates critical calls instantly
+
+---
+
+# Real-World Scenario
+
+## Example
+
+Caller speaks in Telugu:
+
+> "నా ఫ్రెండ్‌ని కొడుతున్నారు... త్వరగా సహాయం పంపండి..."
+
+VAANI:
+- Detects Telugu
+- Detects panic/distress
+- Extracts assault-related keywords
+- Assigns urgency score
+- Escalates to Level 3
+- Immediately routes to human responders
+
+This entire pipeline executes within seconds.
+
+---
+
+# Key Features
+
+## Multilingual Voice AI
+Supports:
+- Telugu
+- Kannada
+- Hindi
+- English
+
+---
+
+## Emotion Detection
+Detects:
+- panic
+- fear
+- distress
+- calmness
+- urgency indicators
+
+---
+
+## Smart Escalation Engine
+
+| Level | Logic | Action |
+|---|---|---|
+| L1 | Calm + High confidence | AI handles call |
+| L2 | Moderate urgency | Human review |
+| L3 | High distress or critical urgency | Immediate escalation |
+
+---
+
+## Session Memory
+Maintains conversational continuity across multiple turns.
+
+---
+
+## Analytics Dashboard
+Tracks:
+- escalation metrics
+- language distribution
+- AI accuracy
+- emergency categories
+- operator feedback
+
+---
+
+# System Architecture
+
+```text
+Citizen Call
+     ↓
+Voice Capture Layer
+(MediaRecorder API)
+     ↓
+Audio Processing
+(Silence Detection)
+     ↓
+Express API Server
+     ↓
+Gemini AI Processing
+     ↓
+Intent + Emotion + Language Analysis
+     ↓
+Escalation Decision Engine
+     ↓
+AI Response OR Human Escalation
+     ↓
+PostgreSQL Storage
+     ↓
+Analytics Dashboard
+```
+
+---
+
+# User Data Flow
+
+```text
+User Speaks
+   ↓
+Frontend Captures Audio
+   ↓
+Audio Converted to Base64
+   ↓
+Sent to /api/vaani/process
+   ↓
+Gemini AI Analyzes:
+   - Language
+   - Emotion
+   - Urgency
+   - Keywords
+   - Intent
+   ↓
+Backend Determines Escalation Level
+   ↓
+AI Generates Response
+   ↓
+Frontend Speaks Response via TTS
+   ↓
+Call Data Stored in PostgreSQL
+   ↓
+Analytics Updated
+```
+
+---
+
+# Monorepo Architecture
+
+```bash
+artifacts/
+├── vaani/                 # React Frontend
+├── api-server/            # Express Backend
+
+lib/
+├── api-spec/              # OpenAPI Contracts
+├── api-client-react/      # Generated React Hooks
+├── api-zod/               # Runtime Validation
+├── db/                    # Drizzle ORM + PostgreSQL
+├── integrations-gemini-ai # Gemini AI Client
+```
+
+---
+
+# Frontend Stack
+
+- React 18
+- TypeScript
+- Vite
+- Tailwind CSS
+- shadcn/ui
+- Framer Motion
+- TanStack Query
+- Wouter
+- Recharts
+
+---
+
+# Backend Stack
+
+- Express.js
+- Drizzle ORM
+- PostgreSQL
+- Gemini 2.5 Flash
+- REST API
+- Session Memory Store
+
+---
+
+# AI Processing Pipeline
+
+## Input
+Voice Audio
+
+## AI Analysis
+- Speech understanding
+- Emotion classification
+- Intent extraction
+- Language detection
+- Urgency scoring
+
+## Output
+Structured emergency response object.
+
+Example:
+
+```json
+{
+  "language": "Telugu",
+  "emotion": "Distressed",
+  "urgency": 9,
+  "confidence": 92,
+  "level": "L3",
+  "keywords": ["assault", "help"],
+  "response": "మేము సహాయం పంపిస్తున్నాము."
+}
+```
+
+---
+
+# Database Schema
+
+## calls table
+
+| Column | Type |
+|---|---|
+| id | UUID |
+| sessionId | String |
+| transcript | Text |
+| issue | Text |
+| emotion | String |
+| language | String |
+| urgency | Integer |
+| confidence | Integer |
+| level | String |
+| keywords | String[] |
+| response | Text |
+| feedback | String |
+| createdAt | Timestamp |
+
+---
+
+# API Endpoints
+
+```http
+POST   /api/vaani/process
+POST   /api/vaani/feedback
+GET    /api/vaani/history
+GET    /api/vaani/analytics
+POST   /api/vaani/reset-session
+```
+
+---
+
+# Pages
+
+| Route | Description |
+|---|---|
+| / | Emergency dispatch dashboard |
+| /analytics | Real-time analytics |
+| /history | Historical call logs |
+
+---
+
+# Local Development Setup
+
+# Prerequisites
+
+Install:
+
+- Node.js 18+
+- pnpm
+- PostgreSQL
+- Google AI Studio API Key
+
+---
+
+# Step 1 — Clone Repository
+
+```bash
+git clone <your-repository-url>
+cd <repository-folder>
+```
+
+---
+
+# Step 2 — Install Dependencies
+
+```bash
+pnpm install
+```
+
+---
+
+# Step 3 — Configure Environment Variables
+
+## Backend
+
+Create:
+
+```bash
+artifacts/api-server/.env
+```
+
+Add:
+
+```env
+PORT=8080
+DATABASE_URL=postgresql://user:password@localhost:5432/vaani
+SESSION_SECRET=replace-with-random-secret
+AI_INTEGRATIONS_GEMINI_API_KEY=your_google_ai_key
+AI_INTEGRATIONS_GEMINI_BASE_URL=https://generativelanguage.googleapis.com
+NODE_ENV=development
+```
+
+---
+
+## Frontend
+
+Create:
+
+```bash
+artifacts/vaani/.env
+```
+
+Add:
+
+```env
+PORT=5173
+BASE_PATH=/
+```
+
+---
+
+# Step 4 — Configure Local Proxy
+
+Open:
+
+```bash
+artifacts/vaani/vite.config.ts
+```
+
+Add:
+
+```ts
+server: {
+  port,
+  strictPort: true,
+  host: "0.0.0.0",
+  allowedHosts: true,
+  proxy: {
+    "/api": "http://localhost:8080",
+  },
+  fs: { strict: true },
+},
+```
+
+---
+
+# Step 5 — Setup Database
+
+```bash
+pnpm --filter @workspace/db run push
+```
+
+This creates the required PostgreSQL tables.
+
+---
+
+# Step 6 — Run Backend
+
+```bash
+pnpm --filter @workspace/api-server run dev
+```
+
+---
+
+# Step 7 — Run Frontend
+
+```bash
+pnpm --filter @workspace/vaani run dev
+```
+
+---
+
+# Step 8 — Open Application
+
+```bash
+http://localhost:5173
+```
+
+---
+
+# Technical Highlights
+
+- Real-time multilingual AI voice processing
+- Emotion-aware escalation engine
+- Production-grade monorepo architecture
+- AI-assisted emergency triaging
+- Full-stack TypeScript ecosystem
+- Analytics-driven operational monitoring
+- Structured API contracts with OpenAPI
+- Runtime validation using Zod
+
+---
+
+# Scalability Vision
+
+Future production upgrades:
+
+- Twilio telephony integration
+- WebRTC streaming
+- Kubernetes deployment
+- Redis session storage
+- Kafka event streaming
+- GPU inference pipeline
+- Voice biometrics
+- Regional language expansion
+- Offline speech recognition
+
+---
+
+# Security Considerations
+
+- Environment secret isolation
+- API validation layer
+- Server-side AI key protection
+- ORM-based DB safety
+- Controlled escalation logic
+- Session isolation
+
+---
+
+# Impact
+
+VAANI aims to reduce emergency response latency by enabling intelligent multilingual AI triaging for Indian public safety systems.
+
+The system bridges communication gaps between distressed citizens and emergency responders using conversational AI.
+
+---
+
+# Author
+
+## Emmadi Chaitanya Krishna , Sagar 
+
+MCA Student • AI/ML Enthusiast • Full Stack Developer
+
+---
